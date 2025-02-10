@@ -20,6 +20,8 @@ from PySide6.QtGui import QStandardItemModel, QStandardItem
 import sys
 import pandas as pd
 
+from builder import RunlistBuilder
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -43,13 +45,15 @@ class MainWindow(QWidget):
         top_layout.addWidget(self.table_view, 1)
 
         # Text Area (Top Right)
-        self.text_area = QTextEdit()
-        top_layout.addWidget(self.text_area, 2)
+        self.preview_area = QTextEdit()
+        top_layout.addWidget(self.preview_area, 2)
 
         main_layout.addLayout(top_layout)
 
         # Bottom Layout (Split into Four Sections)
         bottom_layout = QHBoxLayout()
+
+        self.file_path = None
 
         # Batch Controls Section
         batch_controls_group = QGroupBox("Batch Controls")
@@ -142,6 +146,7 @@ class MainWindow(QWidget):
         if event.type() in {QEvent.KeyRelease, QEvent.FocusOut}:
             widget = self.focusWidget()
             print(f"value changed: {widget.objectName()} = {widget.text()}")
+            # self.generate_runlist()
         return super().event(event)
 
     def load_file(self):
@@ -150,6 +155,9 @@ class MainWindow(QWidget):
         )
         if file_path:
             df = pd.read_excel(file_path)
+            self.file_path = file_path
+            print(f"{self.file_path} is loaded")
+            # make generate button clickable
             self.populate_table(df)
 
     def populate_table(self, df):
@@ -160,7 +168,15 @@ class MainWindow(QWidget):
             self.table_model.appendRow(items)
 
     def generate_runlist(self):
-        self.get_all_settings()
+        if not self.file_path:
+            print("Please load a file first")
+            return
+
+        jlimits, settings, batch_controls = self.get_all_settings()
+        bldr = RunlistBuilder(self.file_path, batch_controls, settings, jlimits, self.output_folder_input.text())
+        runlist = bldr.runlist_str()
+        self.preview_area.setText(f'<pre>{runlist}</pre>')
+        
 
     def get_all_settings(self) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
         jlimits_hboxes = self.jlimits_layout.children()
@@ -180,7 +196,6 @@ class MainWindow(QWidget):
                     "on" if row[0].widget().isChecked() else "off",
                 ]
 
-        print(jlimits)
 
         settings_widgets = self.settings_layout
         settings_widgets_list = []
@@ -193,7 +208,6 @@ class MainWindow(QWidget):
             )
 
         settings = dict(settings_pairs)
-        print(settings)
 
         bc_widgets = self.batch_controls_layout
         bc_widgets_list = []
@@ -210,7 +224,6 @@ class MainWindow(QWidget):
         for i in range(0, len(bc_widgets_list), 2):
             bc_pairs.append((bc_widgets_list[i], bc_widgets_list[i + 1]))
         batch_controls = dict(bc_pairs)
-        print(batch_controls)
 
         return jlimits, settings, batch_controls
 
