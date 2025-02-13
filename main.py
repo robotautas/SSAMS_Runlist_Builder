@@ -14,9 +14,11 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
     QComboBox,
+    QMessageBox,
 )
 from PySide6.QtCore import Qt, QEvent, QSettings
 from PySide6.QtGui import QStandardItemModel, QStandardItem
+import os
 import sys
 import json
 import pandas as pd
@@ -28,6 +30,7 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.runlist_for_saving = ''
         settings = QSettings("SSAMS", "runlist_builder").value("inputs", "{}")
         previous_inputs = json.loads(settings)
         print(previous_inputs)
@@ -46,9 +49,7 @@ class MainWindow(QWidget):
         self.table_view.setFixedWidth(407)
         self.table_model = QStandardItemModel()
         self.table_view.setModel(self.table_model)
-        self.table_view.verticalHeader().setDefaultSectionSize(
-            8
-        )
+        self.table_view.verticalHeader().setDefaultSectionSize(8)
         self.table_view  # Set smaller row height
         top_layout.addWidget(self.table_view, 1)
 
@@ -74,17 +75,16 @@ class MainWindow(QWidget):
             "judge": QCheckBox(),
         }
 
-
         previous_bc_inputs = previous_inputs.get("batch_controls", {})
-        
+
         self.batch_controls_inputs["mode"].addItems(["nrm", "rpt"])
         previous_mode_input = previous_bc_inputs.get("mode", "nrm")
         self.batch_controls_inputs["mode"].setCurrentText(previous_mode_input)
-        
+
         previous_parkmode_value = previous_bc_inputs.get("parkmode", "off")
         previous_parkmode_input = True if previous_parkmode_value == "on" else False
         self.batch_controls_inputs["parkmode"].setChecked(previous_parkmode_input)
-        
+
         previous_judge_value = previous_bc_inputs.get("judge", "off")
         previous_judge_input = True if previous_judge_value == "on" else False
         self.batch_controls_inputs["judge"].setChecked(previous_judge_input)
@@ -92,7 +92,7 @@ class MainWindow(QWidget):
         for label_text, widget in self.batch_controls_inputs.items():
             label = QLabel(label_text)  # Create a QLabel for the setting name
             label.setFixedWidth(75)
-            widget.setFixedWidth(75)  
+            widget.setFixedWidth(75)
             self.batch_controls_layout.addRow(label, widget)
 
         bottom_layout.addWidget(batch_controls_group)
@@ -127,7 +127,9 @@ class MainWindow(QWidget):
         self.jlimits_layout = QVBoxLayout(jlimits_group)
 
         previous_jlimits_inputs = previous_inputs.get("jlimits", {})
-        grafitas_value, grafitas_checked = previous_jlimits_inputs.get("grafitas", ["9", "off"])
+        grafitas_value, grafitas_checked = previous_jlimits_inputs.get(
+            "grafitas", ["9", "off"]
+        )
         ft_value, ft_checked = previous_jlimits_inputs.get("ft", ["3", "off"])
         c1_value, c1_checked = previous_jlimits_inputs.get("c1", ["0.24", "off"])
         c2_value, c2_checked = previous_jlimits_inputs.get("c2", ["0.24", "off"])
@@ -137,19 +139,49 @@ class MainWindow(QWidget):
         c8_value, c8_checked = previous_jlimits_inputs.get("c8", ["3", "off"])
         c9_value, c9_checked = previous_jlimits_inputs.get("c9", ["3", "off"])
         oxii_value, oxii_checked = previous_jlimits_inputs.get("oxii", ["0.5", "off"])
-        
+
         self.jlimits_inputs = {
             "default": QLineEdit(previous_jlimits_inputs.get("default", "0.24")),
-            "grafitas": (QCheckBox(checked=True if grafitas_checked == "on" else False), QLineEdit(grafitas_value)),
-            "ft": (QCheckBox(checked=True if ft_checked == "on" else False), QLineEdit(ft_value)),
-            "c1": (QCheckBox(checked=True if c1_checked == "on" else False), QLineEdit(c1_value)),
-            "c2": (QCheckBox(checked=True if c2_checked == "on" else False), QLineEdit(c2_value)),
-            "c3": (QCheckBox(checked=True if c3_checked == "on" else False), QLineEdit(c3_value)),
-            "c5": (QCheckBox(checked=True if c5_checked == "on" else False), QLineEdit(c5_value)),
-            "c7": (QCheckBox(checked=True if c7_checked == "on" else False), QLineEdit(c7_value)),
-            "c8": (QCheckBox(checked=True if c8_checked == "on" else False), QLineEdit(c8_value)),
-            "c9": (QCheckBox(checked=True if c9_checked == "on" else False), QLineEdit(c9_value)),
-            "oxii": (QCheckBox(checked=True if oxii_checked == "on" else False), QLineEdit(oxii_value)),
+            "grafitas": (
+                QCheckBox(checked=True if grafitas_checked == "on" else False),
+                QLineEdit(grafitas_value),
+            ),
+            "ft": (
+                QCheckBox(checked=True if ft_checked == "on" else False),
+                QLineEdit(ft_value),
+            ),
+            "c1": (
+                QCheckBox(checked=True if c1_checked == "on" else False),
+                QLineEdit(c1_value),
+            ),
+            "c2": (
+                QCheckBox(checked=True if c2_checked == "on" else False),
+                QLineEdit(c2_value),
+            ),
+            "c3": (
+                QCheckBox(checked=True if c3_checked == "on" else False),
+                QLineEdit(c3_value),
+            ),
+            "c5": (
+                QCheckBox(checked=True if c5_checked == "on" else False),
+                QLineEdit(c5_value),
+            ),
+            "c7": (
+                QCheckBox(checked=True if c7_checked == "on" else False),
+                QLineEdit(c7_value),
+            ),
+            "c8": (
+                QCheckBox(checked=True if c8_checked == "on" else False),
+                QLineEdit(c8_value),
+            ),
+            "c9": (
+                QCheckBox(checked=True if c9_checked == "on" else False),
+                QLineEdit(c9_value),
+            ),
+            "oxii": (
+                QCheckBox(checked=True if oxii_checked == "on" else False),
+                QLineEdit(oxii_value),
+            ),
         }
 
         for label_text, value in self.jlimits_inputs.items():
@@ -179,9 +211,6 @@ class MainWindow(QWidget):
         output_group = QGroupBox("Output")
         output_layout = QVBoxLayout(output_group)
 
-        self.output_folder_input = QLineEdit("./runlists")
-        output_layout.addWidget(QLabel("Output Folder"))
-        output_layout.addWidget(self.output_folder_input)
 
         self.load_button = QPushButton("Load File")
         self.load_button.clicked.connect(self.load_file)
@@ -191,6 +220,18 @@ class MainWindow(QWidget):
         self.generate_button.clicked.connect(self.generate_runlist)
         output_layout.addWidget(self.generate_button)
 
+        previous_output_folder_root = previous_inputs.get("output_folder", "C:\\runlists")
+        todays_date = pd.Timestamp.now().strftime("%Y%m%d")
+        output_folder = f"{previous_output_folder_root}\\{todays_date}"
+        self.output_folder_input = QLineEdit(output_folder)
+        output_layout.addWidget(QLabel("Output Folder"))
+        output_layout.addWidget(self.output_folder_input)
+
+        self.save_runlist_button = QPushButton("Save Runlist")
+        self.save_runlist_button.clicked.connect(self.save_runlist)
+        output_layout.addWidget(self.save_runlist_button)
+
+        
         bottom_layout.addWidget(output_group)
 
         main_layout.addLayout(bottom_layout)
@@ -229,14 +270,20 @@ class MainWindow(QWidget):
 
     def generate_runlist(self):
         if not self.file_path:
-            print("Please load a file first")
+            self.show_error_popup("Please load a file first")
             return
 
         jlimits, settings, batch_controls = self.get_all_settings()
-        bldr = RunlistBuilder(self.file_path, batch_controls, settings, jlimits, self.output_folder_input.text())
+        bldr = RunlistBuilder(
+            self.file_path,
+            batch_controls,
+            settings,
+            jlimits,
+            self.output_folder_input.text(),
+        )
         runlist = bldr.runlist_str()
-        self.preview_area.setText(f'<pre>{runlist}</pre>')
-        
+        self.preview_area.setText(f"<pre>{runlist}</pre>")
+        self.runlist_for_saving = runlist
 
     def get_all_settings(self) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
         jlimits_hboxes = self.jlimits_layout.children()
@@ -253,13 +300,12 @@ class MainWindow(QWidget):
                 jlimits[row[1].widget().text()] = row[2].widget().text()
             else:
                 print("TYPE: 2", type(row[0]), row[0].widget())
-                
+
                 jlimits[row[1].widget().text()] = [
                     row[2].widget().text(),
                     "on" if row[0].widget().isChecked() else "off",
                 ]
         print(jlimits)
-
 
         settings_widgets = self.settings_layout
         settings_widgets_list = []
@@ -290,13 +336,58 @@ class MainWindow(QWidget):
         batch_controls = dict(bc_pairs)
 
         return jlimits, settings, batch_controls
-    
+
     def save_inputs(self) -> None:
         global_settings = QSettings("SSAMS", "runlist_builder")
         jlimits, settings, batch_controls = self.get_all_settings()
-        all_settings = {"jlimits": jlimits, "settings": settings, "batch_controls": batch_controls}
+        splitted_runlists_folder = self.output_folder_input.text().split("\\")
+        output_folder = ""
+        if splitted_runlists_folder[-1].startswith('20'):
+            output_folder = "\\".join(splitted_runlists_folder[:-1])
+        else:
+            output_folder = "\\".join(splitted_runlists_folder)
+
+        all_settings = {
+            "jlimits": jlimits,
+            "settings": settings,
+            "batch_controls": batch_controls,
+            "output_folder": output_folder,
+        }
         global_settings.setValue("inputs", json.dumps(all_settings))
         print("saving inputs..")
+
+    
+    def show_success_popup(self):
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setWindowTitle("Success")
+        msg_box.setText("Runlist saved successfully")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
+
+    def show_error_popup(self, message):
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.setWindowTitle("Error")
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
+
+
+    def save_runlist(self):
+        if not self.runlist_for_saving:
+            self.show_error_popup("Please generate a runlist first")
+            return
+        output_folder = self.output_folder_input.text()
+
+        if output_folder:
+            folder_path = self.output_folder_input.text()
+            os.makedirs(folder_path, exist_ok=True)  # Ensure the folder exists
+
+            path = os.path.join(folder_path, 'runlist')  # Use os.path.join for cross-platform compatibility
+            with open(path, "w") as f:
+                f.write(self.runlist_for_saving)
+            self.show_success_popup()
 
 
 if __name__ == "__main__":

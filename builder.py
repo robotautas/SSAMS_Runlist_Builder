@@ -239,12 +239,11 @@ batch wlimit    1000"""
         sum_def_str = ""
         for key, value in enumerate(self.sum_defs()):
             sum_def_str += f"sum {key + 1:>3} {value}\n"
-        return sum_def_str
+        return sum_def_str[:-1] #remove trailing \n
 
     def runlist_str(self) -> str:
         self.apply_columns()
-        return f"""
-{comment1}
+        return f"""{comment1}
 {self.batch_table()}\n
 {comment2}
 {self.cathode_wheel_list()}
