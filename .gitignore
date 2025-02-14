@@ -2,3 +2,5 @@
 /env
 try*
 /__pycache__
+/dist
+/build

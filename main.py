@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 from PySide6.QtCore import Qt, QEvent, QSettings
-from PySide6.QtGui import QStandardItemModel, QStandardItem
+from PySide6.QtGui import QStandardItemModel, QStandardItem, QFont
 import os
 import sys
 import json
@@ -49,12 +49,15 @@ class MainWindow(QWidget):
         self.table_view.setFixedWidth(407)
         self.table_model = QStandardItemModel()
         self.table_view.setModel(self.table_model)
-        self.table_view.verticalHeader().setDefaultSectionSize(8)
-        self.table_view  # Set smaller row height
+        # self.table_view.verticalHeader().setDefaultSectionSize(8)
+        # self.table_view.verticalHeader().setFont(QFont("Arial", 8))
+        # self.table_view  # Set smaller row height
         top_layout.addWidget(self.table_view, 1)
 
         # Text Area (Top Right)
         self.preview_area = QTextEdit()
+        self.preview_area.setMinimumWidth(600)
+        self.preview_area.setReadOnly(True)
         top_layout.addWidget(self.preview_area, 2)
 
         main_layout.addLayout(top_layout)
@@ -213,12 +216,24 @@ class MainWindow(QWidget):
 
 
         self.load_button = QPushButton("Load File")
+        self.load_button.setFixedWidth(200)
+        self.load_button.setFixedHeight(50)
         self.load_button.clicked.connect(self.load_file)
         output_layout.addWidget(self.load_button)
 
         self.generate_button = QPushButton("Generate Runlist")
+        self.generate_button.setFixedWidth(200)
+        self.generate_button.setFixedHeight(50)
         self.generate_button.clicked.connect(self.generate_runlist)
         output_layout.addWidget(self.generate_button)
+
+        self.save_runlist_button = QPushButton("Save Runlist")
+        self.save_runlist_button.clicked.connect(self.save_runlist)
+        self.save_runlist_button.setFixedWidth(200)
+        self.save_runlist_button.setFixedHeight(50)
+        output_layout.addWidget(self.save_runlist_button)
+
+        output_layout.addStretch()
 
         previous_output_folder_root = previous_inputs.get("output_folder", "C:\\runlists")
         todays_date = pd.Timestamp.now().strftime("%Y%m%d")
@@ -227,10 +242,7 @@ class MainWindow(QWidget):
         output_layout.addWidget(QLabel("Output Folder"))
         output_layout.addWidget(self.output_folder_input)
 
-        self.save_runlist_button = QPushButton("Save Runlist")
-        self.save_runlist_button.clicked.connect(self.save_runlist)
-        output_layout.addWidget(self.save_runlist_button)
-
+        # output_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         bottom_layout.addWidget(output_group)
 
@@ -260,10 +272,16 @@ class MainWindow(QWidget):
     def populate_table(self, df):
         df.columns = df.iloc[2]
         df = df[3:]
+        df = df.dropna(subset=["Lab Code", "Client Code/Comment"], how="all")
         self.table_model.clear()
         self.table_model.setHorizontalHeaderLabels(df.columns.tolist())
         self.table_view.verticalHeader().setVisible(False)
         self.table_view.setColumnWidth(0, 30)
+        font = QFont("Arial", 8)  # Smaller font size
+        self.table_view.setFont(font)
+        self.table_view.verticalHeader().setDefaultSectionSize(15)
+        self.table_view.setEditTriggers(QTableView.NoEditTriggers)
+        
         for row in df.itertuples(index=False):
             items = [QStandardItem(str(item)) for item in row]
             self.table_model.appendRow(items)
