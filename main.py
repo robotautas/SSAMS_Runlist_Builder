@@ -64,6 +64,7 @@ class MainWindow(QWidget):
 
         # Bottom Layout (Split into Four Sections)
         bottom_layout = QHBoxLayout()
+        # bottom_layout.setMaximumHeight(300)
 
         self.file_path = None
 
@@ -208,10 +209,13 @@ class MainWindow(QWidget):
                 value.setFixedWidth(75)
             self.jlimits_layout.addLayout(row_layout)
 
+           
+        jlimits_group.setFixedHeight(300)
         bottom_layout.addWidget(jlimits_group)
 
         # Output Folder and Load Button Section
         output_group = QGroupBox("Output")
+        output_group.setFixedHeight(300)
         output_layout = QVBoxLayout(output_group)
 
 
