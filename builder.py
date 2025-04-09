@@ -12,9 +12,12 @@ class RunlistBuilder:
         output_folder: str,
     ) -> None:
         raw_sheet = pd.read_excel(file, header=None, index_col=0)[4:]
+
         self.sheet = raw_sheet.reset_index().rename(columns={"index": "position"})
         self.sheet.columns = ["position", "lab_code", "client_code", "c_content"]
         self.sheet = self.sheet.dropna(subset=["lab_code", "client_code"], how="all")
+
+
         self.batch_controls = dict(batch_controls)  # to be on a safe side memory wise
         self.settings = dict(settings)
         self.jlimits = dict(jlimits)
@@ -48,10 +51,14 @@ class RunlistBuilder:
                 return row["lab_code"]
 
     def Sample_Name_2_column(self, row) -> None:
-        if row["lab_code"] in ["Grafitas", "GRAFITAS", "grafitas"]:
-            return "LT"
-        return "M"
-
+        if pd.isna(row["client_code"]):
+            if row["lab_code"] in ["Grafitas", "GRAFITAS", "grafitas"]:
+                return "LT"
+            return "M"
+        elif isinstance(row['client_code'], str) and row["client_code"].isdigit() and row["lab_code"] in ["C1", "C2", "C3", "C5", "C7", "C8", "C9", "OXII"]:
+            return "M"
+        else:
+            return row["client_code"]
 
     def Item_column(self, row) -> None:
         return row["Pos"]
