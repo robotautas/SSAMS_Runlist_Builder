@@ -48,12 +48,10 @@ class RunlistBuilder:
                 return row["lab_code"]
 
     def Sample_Name_2_column(self, row) -> None:
-        if pd.isna(row["client_code"]) or row["client_code"].isdigit():
-            if row["lab_code"] in ["Grafitas", "GRAFITAS", "grafitas"]:
-                return "LT"
-            return "M"
-        else:
-            return row["client_code"]
+        if row["lab_code"] in ["Grafitas", "GRAFITAS", "grafitas"]:
+            return "LT"
+        return "M"
+
 
     def Item_column(self, row) -> None:
         return row["Pos"]
