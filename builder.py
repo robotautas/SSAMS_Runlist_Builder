@@ -10,13 +10,14 @@ class RunlistBuilder:
         settings: dict[str, str],
         jlimits: dict[str, str | list[str]],
         output_folder: str,
+        corrections = {}
     ) -> None:
         raw_sheet = pd.read_excel(file, header=None, index_col=0)[4:]
+        self.corrections = corrections
 
         self.sheet = raw_sheet.reset_index().rename(columns={"index": "position"})
         self.sheet.columns = ["position", "lab_code", "client_code", "c_content"]
         self.sheet = self.sheet.dropna(subset=["lab_code", "client_code"], how="all")
-
 
         self.batch_controls = dict(batch_controls)  # to be on a safe side memory wise
         self.settings = dict(settings)
@@ -24,7 +25,15 @@ class RunlistBuilder:
         self.output_folder = output_folder
         self.summary_definitions = self.sum_defs()
 
+        self.apply_corrections()
+
         print(self.summary_definitions)
+        print(f'{corrections=}')
+
+    def apply_corrections(self):
+        for row, value in self.corrections.items():
+            self.sheet.loc[row, 'client_code'] = value
+
 
     def SmType_column(self, row) -> None:
         match row["lab_code"]:
@@ -51,14 +60,14 @@ class RunlistBuilder:
                 return row["lab_code"]
 
     def Sample_Name_2_column(self, row) -> None:
-        if pd.isna(row["client_code"]):
+        if pd.isna(row["client_code"]) or row["client_code"] == "nan":
             if row["lab_code"] in ["Grafitas", "GRAFITAS", "grafitas"]:
                 return "LT"
             return "M"
         elif isinstance(row['client_code'], str) and row["client_code"].isdigit() and row["lab_code"] in ["C1", "C2", "C3", "C5", "C7", "C8", "C9", "OXII"]:
             return "M"
         else:
-            return row["client_code"]
+            return row["client_code"][:16]
 
     def Item_column(self, row) -> None:
         return row["Pos"]
@@ -285,4 +294,3 @@ if __name__ == "__main__":
         output_folder="./runlists",
     )
     print(builder.runlist_str())
-    # print(builder.runlist_str())

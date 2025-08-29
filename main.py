@@ -49,9 +49,11 @@ class MainWindow(QWidget):
         self.table_view.setFixedWidth(407)
         self.table_model = QStandardItemModel()
         self.table_view.setModel(self.table_model)
-        # self.table_view.verticalHeader().setDefaultSectionSize(8)
-        # self.table_view.verticalHeader().setFont(QFont("Arial", 8))
-        # self.table_view  # Set smaller row height
+
+        self.table_view.setEditTriggers(QTableView.DoubleClicked)
+        self.table_corrections = {}
+
+        self.table_model.itemChanged.connect(self.on_table_item_changed)
         top_layout.addWidget(self.table_view, 1)
 
         # Text Area (Top Right)
@@ -258,9 +260,21 @@ class MainWindow(QWidget):
         """Intercept all child widget events in the main window"""
         if event.type() in {QEvent.KeyRelease, QEvent.FocusOut}:
             widget = self.focusWidget()
-            print(f"value changed: {widget.objectName()} = {widget.text()}")
+            # try:
+            #     print(f"value changed: {widget.objectName()} = {widget.text()}")
+            # except AttributeError as e:
+            #     print(f'debug failed: {e}')
             # self.generate_runlist()
         return super().event(event)
+    
+    def on_table_item_changed(self, item):
+        """Called when a table cell is edited."""
+        row = item.row()
+        col = item.column()
+        value = item.text()
+        
+        self.table_corrections[row] = value[:16]
+        print(f'{self.table_corrections=}')
 
     def load_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -271,6 +285,7 @@ class MainWindow(QWidget):
             self.file_path = file_path
             print(f"{self.file_path} is loaded")
             # make generate button clickable
+            self.table_corrections = {}
             self.populate_table(df)
 
     def populate_table(self, df):
@@ -284,10 +299,15 @@ class MainWindow(QWidget):
         font = QFont("Arial", 8)  # Smaller font size
         self.table_view.setFont(font)
         self.table_view.verticalHeader().setDefaultSectionSize(15)
-        self.table_view.setEditTriggers(QTableView.NoEditTriggers)
+        # self.table_view.setEditTriggers(QTableView.NoEditTriggers)
         
         for row in df.itertuples(index=False):
             items = [QStandardItem(str(item)) for item in row]
+            items[0].setEditable(False)
+            items[1].setEditable(False)
+            items[2].setEditable(True)
+            items[3].setEditable(False)
+
             self.table_model.appendRow(items)
 
     def generate_runlist(self):
@@ -302,6 +322,7 @@ class MainWindow(QWidget):
             settings,
             jlimits,
             self.output_folder_input.text(),
+            corrections = self.table_corrections
         )
         runlist = bldr.runlist_str()
         self.preview_area.setText(f"<pre>{runlist}</pre>")
@@ -318,10 +339,8 @@ class MainWindow(QWidget):
         jlimits = {}
         for row in jlimit_rows:
             if isinstance(row[0].widget(), QLabel):
-                print("TYPE: 1", type(row[0]), row[0].widget())
                 jlimits[row[1].widget().text()] = row[2].widget().text()
             else:
-                print("TYPE: 2", type(row[0]), row[0].widget())
 
                 jlimits[row[1].widget().text()] = [
                     row[2].widget().text(),
